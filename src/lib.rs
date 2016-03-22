@@ -62,21 +62,17 @@
 #![deny(missing_docs)]
 
 extern crate chrono;
-extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate rustc_serialize;
 
 use chrono::Timelike;
-use hyper::Client;
-use hyper::header::ContentType;
-use hyper::status::StatusCode;
-use hyper::error::Error as HyperError;
 use rustc_serialize::json;
 use rustc_serialize::json::EncoderError;
 use std::collections::HashMap;
 use std::convert::From;
-use std::fmt;
+use std::io::{Read, Write};
+use std::net::TcpStream;
 
 /// Result of an attempt to send meta data or a metric datum
 pub type EmitterResult = Result<(), EmitterError>;
@@ -87,13 +83,13 @@ pub enum EmitterError {
     /// Failed to create JSON.
     JsonParseError(EncoderError),
     /// Failed to send JSON.
-    EmitError(HyperError),
+    EmitError(std::io::Error),
     /// Failed to create Datum on server.
-    ReceiveError(StatusCode),
+    ReceiveError(String),
 }
 
-impl From<HyperError> for EmitterError {
-    fn from(err: HyperError) -> EmitterError {
+impl From<std::io::Error> for EmitterError {
+    fn from(err: std::io::Error) -> EmitterError {
         EmitterError::EmitError(err)
     }
 }
@@ -117,15 +113,7 @@ impl BosunClient {
         BosunClient { host: host.to_string() }
     }
 
-    /// Creates an URL String for a given API endpoint from host.
-    ///
-    fn as_api_url(&self, api_endpoint: &str) -> String {
-        fmt::format(format_args!("http://{}/{}", self.host, api_endpoint))
-    }
-
     /// Sends metric meta data to Bosun server.
-    ///
-    /// # Example
     ///
     /// # Example
     ///
@@ -138,7 +126,7 @@ impl BosunClient {
     /// ```
     pub fn emit_metadata(&self, metadata: &Metadata) -> EmitterResult {
         let encoded = try!(metadata.to_json());
-        let res = BosunClient::send_to_bosun_api(&self.as_api_url("api/metadata/put"), &encoded);
+        let res = BosunClient::send_to_bosun_api(&self.host, "api/metadata/put", &encoded);
         info!("Sent medata '{:?}' to '{:?}' with result: '{:?}'.",
               encoded,
               self.host,
@@ -162,7 +150,7 @@ impl BosunClient {
     /// ```
     pub fn emit_datum(&self, datum: &Datum) -> EmitterResult {
         let encoded = try!(datum.to_json());
-        let res = BosunClient::send_to_bosun_api(&self.as_api_url("api/put"), &encoded);
+        let res = BosunClient::send_to_bosun_api(&self.host, "api/put", &encoded);
         info!("Sent datum '{:?}' to '{:?}' with result: '{:?}'.",
               encoded,
               &self.host,
@@ -171,17 +159,39 @@ impl BosunClient {
         res
     }
 
-    fn send_to_bosun_api(url: &str, json: &str) -> EmitterResult {
-        let client = Client::new();
-        let req = client.post(url).header(ContentType::json()).body(json);
-        let res = try!(req.send());
-        debug!("send_to_bosun_api: Request to '{}', Result: '{:?}'.",
-               url,
-               res);
+    fn send_to_bosun_api(host: &str, path: &str, json: &str) -> EmitterResult {
+        /*
+POST /api/put HTTP/1.1
+Content-Length: 79
+Host: localhost:18071
+Content-Type: application/json; charset=utf-8
 
-        match res.status {
-            StatusCode::NoContent => Ok(()),
-            status_code => Err(EmitterError::ReceiveError(status_code)),
+{"metric":"lukas.tests.count","timestamp":1458679645445,"value":"42","tags":{}}
+         */
+        let mut stream = try!(TcpStream::connect(host));
+        let content = json.as_bytes();
+        let content_length = content.len();
+        // TODO: content instead of json
+        let data_str = format!("POST {} HTTP/1.1\nContent-Length: {}\nHost: {}\nContent-Type: application/json; charset=utf-8\n\n{}\n", path, content_length, host, json);
+        let data = data_str.as_bytes();
+
+        let tx_res = try!(stream.write(&data));
+        // TODO: Assert to real check
+        assert_eq!(tx_res, data.len());
+        let mut result_data = [0; 1024];
+        let rx_len = try!(stream.read(&mut result_data));
+        let result = String::from_utf8_lossy(&result_data[0..rx_len]).to_string();
+        debug!("send_to_bosun_api: Request to '{}/{}', Result: '{:?}'.",
+               host,
+               path,
+               result);
+
+        // TODO: make this safe
+        let mut splitter = result.split_whitespace();
+        let _ = splitter.next();
+        match splitter.next().unwrap() {
+            "204" => Ok(()),
+            status_code => Err(EmitterError::ReceiveError(status_code.to_string())),
         }
     }
 }
@@ -327,13 +337,3 @@ pub fn now_in_ms() -> i64 {
     now.timestamp() * 1000 + (now.nanosecond() / 1000) as i64
 }
 
-#[cfg(test)]
-#[test]
-fn test_as_api_url() {
-    let host = "localhost:8070";
-    let client = BosunClient::new(host);
-
-    assert_eq!(client.as_api_url("api"), "http://localhost:8070/api");
-    assert_eq!(client.as_api_url("metadata/api"),
-               "http://localhost:8070/metadata/api");
-}

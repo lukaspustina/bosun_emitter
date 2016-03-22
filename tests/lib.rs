@@ -54,6 +54,7 @@ fn send_datum() {
     let output = server.recv()
                       .unwrap_or_else(|e| panic!("failed to wait on child: {}", e));
 
+    println!("---{}---", output);
     assert!(output.find("Content-Type: application/json; charset=utf-8").is_some());
 
     let json = Json::from_str(output.lines().last().unwrap()).unwrap();
