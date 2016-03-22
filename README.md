@@ -18,7 +18,7 @@ While it is easy to create external collectors and suitable for most needs, ther
 
 ## Library
 
-Please see the Rustdoc [documentation](http://lukaspustina.github.io/bosun_emitter). You can also find a crate on [crates.io](https://crates.io) and via Cargo.
+Please see the [Rustdoc](http://lukaspustina.github.io/bosun_emitter) for documentation of the latest build. You can also find a crate on [crates.io](https://crates.io) and via Cargo.
 
 
 ## Command Line Tool
