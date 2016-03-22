@@ -1,5 +1,5 @@
 ---
-version: 0.0.1.{build}
+version: {build}
 skip_non_tags: true
 environment:
   OPENSSL_INCLUDE_DIR: C:\OpenSSL\include
