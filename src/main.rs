@@ -136,7 +136,8 @@ fn main() {
     let config: Config = match parse_args(&cli_args) {
         Ok(config) => config,
         Err(err) => {
-            exit_with_error(&format!("Failed to parse configuration, because {}.", err), -2);
+            exit_with_error(&format!("Failed to parse configuration, because {}.", err),
+                            -2);
         }
     };
     if cli_args.is_present("show-config") {
@@ -148,7 +149,8 @@ fn main() {
         Err(ModeError::NoMetadata) => exit_with_error("Cannot send datum without metadata.", -11),
         Err(ModeError::NoValue) => exit_with_error("Cannot send datum without value.", -12),
         Err(ModeError::NoSuchMode) => {
-            exit_with_error("Command line arguments combination does not make any sense.", -13);
+            exit_with_error("Command line arguments combination does not make any sense.",
+                            -13);
         }
     };
 
@@ -156,10 +158,15 @@ fn main() {
     match result {
         Ok(_) => {}
         Err(EmitterError::JsonParseError(e)) => {
-            exit_with_error(&format!("Failed to create JSON document, because {}.", e), 1)
+            exit_with_error(&format!("Failed to create JSON document, because {}.", e),
+                            1)
         }
-        Err(EmitterError::EmitError(e)) => exit_with_error(&format!("Failed to send, because {}.", e), 2),
-        Err(EmitterError::ReceiveError(e)) => exit_with_error(&format!("Failed to create resource, because {}.", e), 3),
+        Err(EmitterError::EmitError(e)) => {
+            exit_with_error(&format!("Failed to send, because {}.", e), 2)
+        }
+        Err(EmitterError::ReceiveError(e)) => {
+            exit_with_error(&format!("Failed to create resource, because {}.", e), 3)
+        }
     }
 }
 

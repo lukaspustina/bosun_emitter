@@ -2,7 +2,7 @@
 //!
 //! > "[Bosun](http://bosun.org) is an open-source, MIT licensed, monitoring and alerting system by [Stack Exchange](http://stackexchange.com/). It has an expressive domain specific language for evaluating alerts and creating detailed notifications. It also lets you test your alerts against history for a faster development experience." <sup>[[1]](http://bosun.org)</sup>
 //!
-//! Bosun receives metric data mostly via [scollector](http://bosun.org/scollector/) which is Boson's agent running on each monitored host. scollector runs build-in as well as external collectors periodically to collect and trasmit metrics on its hosts. 
+//! Bosun receives metric data mostly via [scollector](http://bosun.org/scollector/) which is Boson's agent running on each monitored host. scollector runs build-in as well as external collectors periodically to collect and trasmit metrics on its hosts.
 //!
 //! While it is easy to create external collectors and suitable for most needs, there are cases in which sending a single, individual metric datum may be helpful. Such cases may comprise any individually run program such as a Cron job for backups or in general any other shell script. Futher, it might be helpful to send metric data from your own application.
 //!
@@ -334,6 +334,6 @@ fn test_as_api_url() {
     let client = BosunClient::new(host);
 
     assert_eq!(client.as_api_url("api"), "http://localhost:8070/api");
-    assert_eq!(client.as_api_url("metadata/api"), "http://localhost:8070/metadata/api");
+    assert_eq!(client.as_api_url("metadata/api"),
+               "http://localhost:8070/metadata/api");
 }
-
