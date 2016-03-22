@@ -8,6 +8,12 @@ documentation = "http://lukaspustina.github.io/bosun_emitter"
 readme = "README.md"
 license = "MIT"
 keywords = ["bosun", "command", "line", "metric"]
+include = [
+  "README.md",
+  "LICENSE",
+  "**/*.rs",
+  "Cargo.toml",
+]
 
 [[bin]]
 name = "emit_bosun"
