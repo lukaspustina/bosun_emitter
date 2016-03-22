@@ -1,0 +1,9 @@
+Host = "bosun:8070"
+FullHost = false
+Hostname = "webserver"
+
+[Tags]
+  hostgroup = "webservers"
+  domain = "webserver.de"
+  hosttype = "baremetal"
+

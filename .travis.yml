@@ -1,0 +1,47 @@
+language: rust
+rust:
+- stable
+- beta
+- nightly
+branches:
+  only:
+  - master
+  - travis-ci
+  - "/^v.*$/"
+os:
+- linux
+- osx
+matrix:
+  allow_failures:
+  - rust: nightly
+after_success: |
+  [ $TRAVIS_OS_NAME = linux ] &&
+  [ $TRAVIS_RUST_VERSION = stable ] &&
+  [ $TRAVIS_BRANCH = master ] &&
+  [ $TRAVIS_PULL_REQUEST = false ] &&
+  [ $TRAVIS_TAG ] &&
+  cargo doc --no-deps &&
+  echo '<meta http-equiv=refresh content=0;url=bosun_emitter/index.html>' > target/doc/index.html &&
+  pip install --user ghp-import &&
+  /home/travis/.local/bin/ghp-import -n target/doc &&
+  git push -fq https://${GITHUB_TOKEN}@github.com/${TRAVIS_REPO_SLUG}.git gh-pages
+before_deploy:
+- cd /home/travis/build/lukaspustina/bosun_emitter; cargo build --release
+- cd /home/travis/build/lukaspustina; git clone https://github.com/lukaspustina/bosun_emitter-deb.git
+- cd /home/travis/build/lukaspustina/bosun_emitter-deb; BIN_DIR=../bosun_emitter/target/release ARCH=amd64 VERSION=$TRAVIS_TAG TAG=$TRAVIS_TAG DIST=trusty make package
+deploy:
+  provider: packagecloud
+  username: lukaspustina1  token:
+    secure: LFbmfH3/FoqqAdcyPgK/gN4JuDf/l28p0+OkpvEHLJkHIBnYdgDev7Cr+ni8prda79WKqC76yTIfWCVnR0EmJpBpUsn71iNjTstnF+2AD5GKH/6GhKaotoYujDLJXSWBSc6Ci3XH/sEzbwbiaLKefOmnsk6xSrxTdziadIC4Kn6k9otUp6eZSpTEK9JOvWxymIj23HsRgv//qX5OPB54IurnodKK3m2uOTgOdFCJckfYppo7a03uiLjdoTPjLg4ppIeDSbzKeAoh9arEVwKlRpFBOw/dDcqnRuoJQMI2BmC5qXKt1UCbg5ucUJcJHwYEXBKdmSy1euUZiMOVaCdadf+pcuiPq+3x0DBrk7j7Inq1mKokm8QGYn6YmO7/D613Y5dKY/mNwWeaodKPlP20WGXdJQ4q3bkye9YVG/XrZas6TLgKXm1KpvlreJuToFS0/Pd+Pziy+xtOzQUBxK1jm4gZEMH2ckRGX4I54RU0Zg+/6e6884VK9nvdswWKYsHpsLlsQCfH+ypZhLU6atHM4tAhk1qenzNXTcTYOASHz95UzDpB8XaQ45UYPPqEwOFzwI71nvFSwKjuVNpnWvAGJxInk7XsuHuDpfte5dp0/g/L/SqKruJFfsbvnrKR6L+bNLMWMIogoOdzhCASjofo6pTcODiPSmmJE9R8b4OQ9jg=
+  repository: opensource
+  dist: ubuntu/trusty
+  package_glob: "**/*.deb"
+  skip_cleanup: true
+  on:
+    tags: true
+    condition:
+    - "$TRAVIS_OS_NAME == linux"
+    - "$TRAVIS_RUST_VERSION == stable"
+env:
+  global:
+    secure: eRh/dN3/XUQ4o/JpGj/k8j+rSNSb6YAj9zLhpL/YaTaS3X1jcRKwh1vgbOm3fhdozrbXiDjLNKOPxc0yYh1PyOIBwXp0hwW95FQTBB5IGyMB2oHvXiwU6J9xGnkkauQKG/BOkzS0/ezZax5LeoI4ClBQ1SmByGF67p/PmY89selH+r51eLW66/lHAnznWnw3+hYXKnR1pybNdvIlTiMgdc2e5KYNR2AUiHz8JIyBVdF3oFLH3R8+LiJ9SVfUjThFRdoofPEtvz2RzWN/UwcnEbU4qWLM74uWmuadlaQpbEq5UUF7HyPHNR20lNOGj8key0v0vkHMAu3lQYBNh08DSIxokWJSGAqGSGfY9gicPgdjPQ52aq+NhfzcFZA4SLDIgemiEn2F4u3xFlI+rQkNumJQn3AroHqBM9rt96cMD/zM18kHwf/KgPLhkUxyQp0aPpXBElHj1QxQ5JhT1B2zCE1HYs9wxngNFRYAg8hjhs6cg9P4oKYtwoA2QvJGXqZSdMyncSY2h2ymf6gcgLp0muHOtqbzu78V2Lgpvel0RCajCqZVbphDm0UGie6McIE92rMGRvrsy9b454e4XIeGtksUvi+wlQ9fWgK6rrWoj3AArYQb1nKXp3WjChjTN8+f7mNDOpu5oMvvs2SmYeqKzecFds5xECPA1yBAZAeYnWg=
