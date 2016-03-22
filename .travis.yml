@@ -31,7 +31,8 @@ before_deploy:
 - cd /home/travis/build/lukaspustina/bosun_emitter-deb; BIN_DIR=../bosun_emitter/target/release ARCH=amd64 VERSION=$TRAVIS_TAG TAG=$TRAVIS_TAG DIST=trusty make package
 deploy:
   provider: packagecloud
-  username: lukaspustina1  token:
+  username: lukaspustina
+  token:
     secure: LFbmfH3/FoqqAdcyPgK/gN4JuDf/l28p0+OkpvEHLJkHIBnYdgDev7Cr+ni8prda79WKqC76yTIfWCVnR0EmJpBpUsn71iNjTstnF+2AD5GKH/6GhKaotoYujDLJXSWBSc6Ci3XH/sEzbwbiaLKefOmnsk6xSrxTdziadIC4Kn6k9otUp6eZSpTEK9JOvWxymIj23HsRgv//qX5OPB54IurnodKK3m2uOTgOdFCJckfYppo7a03uiLjdoTPjLg4ppIeDSbzKeAoh9arEVwKlRpFBOw/dDcqnRuoJQMI2BmC5qXKt1UCbg5ucUJcJHwYEXBKdmSy1euUZiMOVaCdadf+pcuiPq+3x0DBrk7j7Inq1mKokm8QGYn6YmO7/D613Y5dKY/mNwWeaodKPlP20WGXdJQ4q3bkye9YVG/XrZas6TLgKXm1KpvlreJuToFS0/Pd+Pziy+xtOzQUBxK1jm4gZEMH2ckRGX4I54RU0Zg+/6e6884VK9nvdswWKYsHpsLlsQCfH+ypZhLU6atHM4tAhk1qenzNXTcTYOASHz95UzDpB8XaQ45UYPPqEwOFzwI71nvFSwKjuVNpnWvAGJxInk7XsuHuDpfte5dp0/g/L/SqKruJFfsbvnrKR6L+bNLMWMIogoOdzhCASjofo6pTcODiPSmmJE9R8b4OQ9jg=
   repository: opensource
   dist: ubuntu/trusty
