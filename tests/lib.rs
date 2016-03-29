@@ -19,7 +19,9 @@ fn send_metadata() {
     let server = run_server(port);
     let client = BosunClient::new(&format!("localhost:{}", port));
     let metadata = Metadata::new(&metric, &rate, &unit, &description);
-    let _ = client.emit_metadata(&metadata);
+    let result = client.emit_metadata(&metadata);
+    assert!(result.is_ok());
+
     let output = server.recv()
                       .unwrap_or_else(|e| panic!("failed to wait on child: {}", e));
 
@@ -50,7 +52,9 @@ fn send_datum() {
     let server = run_server(port);
     let client = BosunClient::new(&format!("localhost:{}", port));
     let datum = Datum::new(&metric, now, &value, &tags);
-    let _ = client.emit_datum(&datum);
+    let result = client.emit_datum(&datum);
+    assert!(result.is_ok());
+
     let output = server.recv()
                       .unwrap_or_else(|e| panic!("failed to wait on child: {}", e));
 

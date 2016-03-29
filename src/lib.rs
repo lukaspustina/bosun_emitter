@@ -160,24 +160,18 @@ impl BosunClient {
     }
 
     fn send_to_bosun_api(host: &str, path: &str, json: &str) -> EmitterResult {
-        /*
-POST /api/put HTTP/1.1
-Content-Length: 79
-Host: localhost:18071
-Content-Type: application/json; charset=utf-8
-
-{"metric":"lukas.tests.count","timestamp":1458679645445,"value":"42","tags":{}}
-         */
         let mut stream = try!(TcpStream::connect(host));
         let content = json.as_bytes();
         let content_length = content.len();
-        // TODO: content instead of json
-        let data_str = format!("POST {} HTTP/1.1\nContent-Length: {}\nHost: {}\nContent-Type: application/json; charset=utf-8\n\n{}\n", path, content_length, host, json);
+        let data_str = format!("POST {} HTTP/1.1\nContent-Length: {}\nHost: {}\nContent-Type: application/json; charset=utf-8\n\n{}", path, content_length, host, json);
         let data = data_str.as_bytes();
 
         let tx_res = try!(stream.write(&data));
-        // TODO: Assert to real check
-        assert_eq!(tx_res, data.len());
+        if tx_res < data.len() {
+            let underlying = std::io::Error::new(std::io::ErrorKind::Interrupted, "Failed to send request.");
+            return Err(EmitterError::EmitError(underlying))
+        }
+
         let mut result_data = [0; 1024];
         let rx_len = try!(stream.read(&mut result_data));
         let result = String::from_utf8_lossy(&result_data[0..rx_len]).to_string();
@@ -186,10 +180,12 @@ Content-Type: application/json; charset=utf-8
                path,
                result);
 
-        // TODO: make this safe
-        let mut splitter = result.split_whitespace();
-        let _ = splitter.next();
-        match splitter.next().unwrap() {
+        let splitter: Vec<&str> = result.split_whitespace().collect();
+        if splitter.len() != 3 {
+            let underlying = std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid response");
+            return Err(EmitterError::EmitError(underlying))
+        }
+        match splitter[1] {
             "204" => Ok(()),
             status_code => Err(EmitterError::ReceiveError(status_code.to_string())),
         }
