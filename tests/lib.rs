@@ -1,9 +1,12 @@
 extern crate bosun_emitter;
+extern crate mktemp;
 extern crate rustc_serialize;
 
 use bosun_emitter::*;
 use rustc_serialize::json::Json;
-use std::io::{Read, Write};
+use mktemp::Temp;
+use std::io::prelude::*;
+use std::fs::File;
 use std::net::TcpListener;
 use std::sync::mpsc::{Receiver, channel};
 use std::thread;
@@ -93,5 +96,31 @@ fn run_server(port: u16) -> Receiver<String> {
     });
 
     rx
+}
+
+#[test]
+fn load_scollector_config() {
+    let scollector_toml = r#"
+Host = "bosun:8070"
+FullHost = false
+Hostname = "webserver"
+
+[Tags]
+  hostgroup = "webservers"
+  domain = "webserver.de"
+  hosttype = "baremetal"
+"#;
+    let temp_file_path = Temp::new_file().unwrap().to_path_buf();
+    let mut f = File::create(&temp_file_path).unwrap();
+    let _ = f.write_all(scollector_toml.as_bytes()).unwrap();
+    let _ = f.sync_data().unwrap();
+
+    let bosun_config = BosunConfig::load_from_scollector_config(&temp_file_path).unwrap();
+
+    assert_eq!(bosun_config.Host, "bosun:8070");
+    assert_eq!(bosun_config.Hostname, "webserver");
+    assert_eq!(bosun_config.Tags["hostgroup"], "webservers");
+    assert_eq!(bosun_config.Tags["domain"], "webserver.de");
+    assert_eq!(bosun_config.Tags["hosttype"], "baremetal");
 }
 
