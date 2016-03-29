@@ -4,25 +4,19 @@ extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate log;
-extern crate rustc_serialize;
-extern crate toml;
 
 extern crate bosun_emitter;
 
 use clap::{Arg, ArgMatches, App};
 use std::error::Error;
-use std::fs::File;
 use std::path::Path;
-use std::io::Read;
-use rustc_serialize::Decodable;
 
-use bosun_emitter::{BosunClient, Metadata, Datum, Tags, EmitterError};
+use bosun_emitter::{BosunClient, Metadata, Datum, Tags, EmitterError, SCollectorConfig};
 
 static VERSION: &'static str = env!("CARGO_PKG_VERSION");
 static DEFAULT_CONFIG_FILE: &'static str = "/etc/bosun/scollector.conf";
 
 #[derive(Debug)]
-#[derive(RustcDecodable)]
 #[allow(non_snake_case)]
 struct Config {
     Host: String,
@@ -37,15 +31,20 @@ struct Config {
 
 impl Config {
     pub fn default() -> Config {
+        let scollector = SCollectorConfig::default();
+        Config::from_scollector(scollector)
+    }
+
+    pub fn from_scollector(scollector: SCollectorConfig) -> Config {
         Config {
-            Host: "localhost:8070".to_string(),
-            Hostname: "localhost".to_string(),
+            Host: scollector.Host,
+            Hostname: scollector.Hostname,
             Metric: None,
             Value: None,
             Rate: None,
             Unit: None,
             Description: None,
-            Tags: Tags::new(),
+            Tags: scollector.Tags
         }
     }
 }
@@ -173,7 +172,8 @@ fn main() {
 fn parse_args(cli_args: &ArgMatches) -> Result<Config, Box<Error>> {
     let config_file_path = Path::new(cli_args.value_of("config").unwrap_or(DEFAULT_CONFIG_FILE));
     let mut config: Config = if config_file_path.exists() {
-        try!(load_config_from_file(&config_file_path))
+        let scollector: SCollectorConfig = try!(SCollectorConfig::load_from_file(&config_file_path));
+        Config::from_scollector(scollector)
     } else {
         Config::default()
     };
@@ -225,30 +225,6 @@ fn parse_tags(config: &mut Config, tags_string: &str) {
                .fold((), |_, (k, v)| {
                    config.Tags.insert(k, v);
                });
-}
-
-fn load_config_from_file<T: Decodable>(file_path: &Path) -> Result<T, Box<Error>> {
-    match load_toml(file_path) {
-        Ok(toml) => {
-            let mut decoder = toml::Decoder::new(toml);
-            let config = try!(T::decode(&mut decoder));
-
-            Ok(config)
-        }
-        Err(err) => Err(err),
-    }
-}
-
-fn load_toml(file_path: &Path) -> Result<toml::Value, Box<Error>> {
-    let mut config_file = try!(File::open(file_path));
-    let mut config_content = String::new();
-    try!(config_file.read_to_string(&mut config_content));
-
-    let mut parser = toml::Parser::new(&config_content);
-    match parser.parse() {
-        Some(toml) => Ok(toml::Value::Table(toml)),
-        None => Err(From::from(parser.errors.pop().unwrap())),
-    }
 }
 
 enum Mode {

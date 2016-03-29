@@ -65,14 +65,18 @@ extern crate chrono;
 #[macro_use]
 extern crate log;
 extern crate rustc_serialize;
+extern crate toml;
 
 use chrono::Timelike;
+use rustc_serialize::Decodable;
 use rustc_serialize::json;
 use rustc_serialize::json::EncoderError;
 use std::collections::HashMap;
 use std::convert::From;
+use std::fs::File;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::path::Path;
 
 /// Result of an attempt to send meta data or a metric datum
 pub type EmitterResult = Result<(), EmitterError>;
@@ -331,5 +335,48 @@ impl<'a> Datum<'a> {
 pub fn now_in_ms() -> i64 {
     let now = chrono::Local::now();
     now.timestamp() * 1000 + (now.nanosecond() / 1000) as i64
+}
+
+#[derive(Debug)]
+#[derive(RustcDecodable)]
+#[allow(non_snake_case)]
+pub struct SCollectorConfig {
+    pub Host: String,
+    pub Hostname: String,
+    pub Tags: Tags,
+}
+
+impl SCollectorConfig {
+    pub fn default() -> SCollectorConfig {
+        SCollectorConfig {
+            Host: "localhost:8070".to_string(),
+            Hostname: "localhost".to_string(),
+            Tags: Tags::new(),
+        }
+    }
+
+    pub fn load_from_file<T: Decodable>(file_path: &Path) -> Result<T, Box<std::error::Error>> {
+        match SCollectorConfig::load_toml(file_path) {
+            Ok(toml) => {
+                let mut decoder = toml::Decoder::new(toml);
+                let config = try!(T::decode(&mut decoder));
+
+                Ok(config)
+            }
+            Err(err) => Err(err),
+        }
+    }
+
+    fn load_toml(file_path: &Path) -> Result<toml::Value, Box<std::error::Error>> {
+        let mut config_file = try!(File::open(file_path));
+        let mut config_content = String::new();
+        try!(config_file.read_to_string(&mut config_content));
+
+        let mut parser = toml::Parser::new(&config_content);
+        match parser.parse() {
+            Some(toml) => Ok(toml::Value::Table(toml)),
+            None => Err(From::from(parser.errors.pop().unwrap())),
+        }
+    }
 }
 
