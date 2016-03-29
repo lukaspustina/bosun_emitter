@@ -2,11 +2,11 @@
 //!
 //! > "[Bosun](http://bosun.org) is an open-source, MIT licensed, monitoring and alerting system by [Stack Exchange](http://stackexchange.com/). It has an expressive domain specific language for evaluating alerts and creating detailed notifications. It also lets you test your alerts against history for a faster development experience." <sup>[[1]](http://bosun.org)</sup>
 //!
-//! Bosun receives metric data mostly via [scollector](http://bosun.org/scollector/) which is Boson's agent running on each monitored host. scollector runs build-in as well as external collectors periodically to collect and trasmit metrics on its hosts.
+//! Bosun receives metric data mostly via [scollector](http://bosun.org/scollector/) which is Boson's agent running on each monitored host. scollector runs build-in as well as external collectors periodically to collect and transmit metrics on its hosts.
 //!
-//! While it is easy to create external collectors and suitable for most needs, there are cases in which sending a single, individual metric datum may be helpful. Such cases may comprise any individually run program such as a Cron job for backups or in general any other shell script. Futher, it might be helpful to send metric data from your own application.
+//! While it is easy to create external collectors suitable for most needs, there are cases in which sending a single, individual metric datum may be helpful. Such cases may comprise any individually run program such as a Cron job for backups or in general any other shell script. Further, it might be helpful to send metric data from your own application.
 //!
-//! **bosun_emitter** is a library that eases sending metric data and corresponding meta data describing the metric. Furhter, this crate contains a CLI standalone binary called `emit_bosun` that may be used on the command line or from any shell script to send a single metric datum.
+//! **bosun_emitter** is a library that makes it easy to send metric data and corresponding meta data describing the metric. Further, this crate contains a CLI standalone binary called `emit_bosun` that may be used on the command line or from any shell script to send a single metric datum.
 //!
 //! # Example
 //!
@@ -45,7 +45,7 @@
 //! emit_bosun --host localhost:8070 --hostname backup-server --tags 'type=mongodb,database=production' --metric backup.runtime --value $runtime --rate gauge --unit sec -d "Backup runtime"
 //! ```
 //!
-//! `emit_bosun` parses scollector config files for settings like Bosun server `Host, --host`, local hostname `Hostname, --hostname`, and tags `Tags, --tags`. So in case scollector is configured on your host, you can omit these CLI parameters and just pass the configuration file.
+//! `emit_bosun` parses scollector config files for settings like Bosun server `Host, --host`, local hostname `Hostname, --hostname`, and tags `Tags, --tags`. In case scollector is configured on your host, you can omit these CLI parameters and just pass the configuration file.
 //!
 //! ## CLI Tool -- Parsing scollector Configuration File
 //!
@@ -53,7 +53,7 @@
 //! > emit_bosun -c /etc/bosun/scollector.conf --metric backup.runtime --value $runtime --rate gauge --unit sec -d "Backup Runtime in sec"
 //! ```
 //!
-//! The above example scollector configuration file is the default path where `emit_bosun` looks for a configuration file. So you can omit even that parameter. In addition, tags passed on the command line will be merged with tags read from scollector's configuration file.
+//! The above example scollector configuration file is the default path where `emit_bosun` looks for a configuration file. So you can even omit that parameter. In addition, tags passed on the command line will be merged with tags read from scollector's configuration file.
 //!
 //! ```bash
 //! > emit_bosun --metric backup.runtime --value $runtime --rate gauge --unit sec -d "Backup Runtime in sec"
@@ -77,7 +77,7 @@ use std::net::TcpStream;
 /// Result of an attempt to send meta data or a metric datum
 pub type EmitterResult = Result<(), EmitterError>;
 
-/// Errors which may occurr while sending a either metadata or a metric data.
+/// Errors which may occur while sending either meta data or metric data.
 #[derive(Debug)]
 pub enum EmitterError {
     /// Failed to create JSON.
@@ -207,7 +207,7 @@ pub struct Metadata<'a> {
 
 // TODO: Add check for rate type: [gauge, counter rate]
 impl<'a> Metadata<'a> {
-    /// Creates a new metric metadata.
+    /// Creates new metric meta data.
     pub fn new(metric: &'a str,
                rate: &'a str,
                unit: &'a str,

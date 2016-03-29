@@ -9,11 +9,11 @@ A command line tool and [Rust](http://www.rust-lang.org) library to emit metric 
 
 > [Bosun](http://bosun.org) is an open-source, MIT licensed, monitoring and alerting system by [Stack Exchange](http://stackexchange.com/). It has an expressive domain specific language for evaluating alerts and creating detailed notifications. It also lets you test your alerts against history for a faster development experience. <sup>[[1]](http://bosun.org)</sup>
 
-Bosun receives metric data mostly via [scollector](http://bosun.org/scollector/) which is Boson's agent running on each monitored host. scollector runs build-in as well as external collectors periodically to collect and trasmit metrics on its hosts.
+Bosun receives metric data mostly via [scollector](http://bosun.org/scollector/) which is Boson's agent running on each monitored host. scollector runs build-in as well as external collectors periodically to collect and transmit metrics on its hosts.
 
-While it is easy to create external collectors and suitable for most needs, there are cases in which sending a single, individual metric datum may be helpful. Such cases may comprise any individually run program such as a Cron job for backups or in general any other shell script. Futher, it might be helpful to send metric data from your own application.
+While it is easy to create external collectors suitable for most needs, there are cases in which sending a single, individual metric datum may be helpful. Such cases may comprise any individually run program such as a Cron job for backups or in general any other shell script. Further, it might be helpful to send metric data from your own application.
 
-**bosun_emitter** is a library that eases sending metric data and corresponding meta data describing the metric. Furhter, this crate contains a CLI standalone binary called `emit_bosun` that may be used on the command line or from any shell script to send a single metric datum.
+**bosun_emitter** is a library that makes it easy to send metric data and corresponding meta data describing the metric. Further, this crate contains a CLI standalone binary called `emit_bosun` that may be used on the command line or from any shell script to send a single metric datum.
 
 
 ## Library
@@ -48,9 +48,9 @@ OPTIONS:
     -u, --unit <UNIT>                           Sets metric value unit
     -v, --value <VALUE>                         Sets metric value
 
-Two modes are supported, i.e., sending a datum with meta data or sending only meta data.
-The modes are controlled whether a value `--value` is passed or not.
-Please mind that in both cases the meta data is required.
+Two modes are supported, i.e., sending a datum with meta data or sending only
+meta data.  The modes are controlled whether a value `--value` is passed or
+not. Please mind that in both cases the meta data is required.
 ```
 
 ### Example
@@ -73,9 +73,9 @@ You can find the source code for each release on the [GitHub Release](https://gi
 
 Travi CI creates Ubuntu Trusty packages for `emit_bosun` for each release. Please see the [Repository](https://packagecloud.io/lukaspustina/opensource) for details.
 
-## Cargo
+### Cargo
 
-Yet to come.
+Rust crate releases can be found on [Crates.io](https://crates.io/crates/bosun_emitter).
 
 
 ## Contributing

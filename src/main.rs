@@ -1,4 +1,4 @@
-//! emit_bosun -- Emits a single metric datum and corresponding metric metadata to [Bosun](http:////bosun.org).
+//! emit_bosun -- Emits a single metric datum and corresponding metric meta data to [Bosun](http:////bosun.org).
 
 extern crate clap;
 extern crate env_logger;
@@ -128,7 +128,7 @@ fn main() {
                        .arg(Arg::with_name("force")
                                 .hidden(true)
                                 .long("force")
-                                .help("Forces metric datum to be send even without metadata"))
+                                .help("Forces metric datum to be send even without meta data"))
                        .get_matches();
 
     let force: bool = cli_args.is_present("force");
@@ -146,7 +146,7 @@ fn main() {
 
     let mode = match mode(&config, force) {
         Ok(mode) => mode,
-        Err(ModeError::NoMetadata) => exit_with_error("Cannot send datum without metadata.", -11),
+        Err(ModeError::NoMetadata) => exit_with_error("Cannot send datum without meta data.", -11),
         Err(ModeError::NoValue) => exit_with_error("Cannot send datum without value.", -12),
         Err(ModeError::NoSuchMode) => {
             exit_with_error("Command line arguments combination does not make any sense.",
