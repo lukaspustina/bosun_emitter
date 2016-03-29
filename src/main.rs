@@ -11,40 +11,39 @@ use clap::{Arg, ArgMatches, App};
 use std::error::Error;
 use std::path::Path;
 
-use bosun_emitter::{BosunClient, Metadata, Datum, Tags, EmitterError, SCollectorConfig};
+use bosun_emitter::{BosunClient, Metadata, Datum, Tags, EmitterError, BosunConfig};
 
 static VERSION: &'static str = env!("CARGO_PKG_VERSION");
 static DEFAULT_CONFIG_FILE: &'static str = "/etc/bosun/scollector.conf";
 
 #[derive(Debug)]
-#[allow(non_snake_case)]
 struct Config {
-    Host: String,
-    Hostname: String,
-    Metric: Option<String>,
-    Value: Option<String>,
-    Rate: Option<String>,
-    Unit: Option<String>,
-    Description: Option<String>,
-    Tags: Tags,
+    host: String,
+    hostname: String,
+    metric: Option<String>,
+    value: Option<String>,
+    rate: Option<String>,
+    unit: Option<String>,
+    description: Option<String>,
+    tags: Tags,
 }
 
 impl Config {
     pub fn default() -> Config {
-        let scollector = SCollectorConfig::default();
-        Config::from_scollector(scollector)
+        let bosun_config = BosunConfig::default();
+        Config::from_bosun_config(bosun_config)
     }
 
-    pub fn from_scollector(scollector: SCollectorConfig) -> Config {
+    pub fn from_bosun_config(bosun_config: BosunConfig) -> Config {
         Config {
-            Host: scollector.Host,
-            Hostname: scollector.Hostname,
-            Metric: None,
-            Value: None,
-            Rate: None,
-            Unit: None,
-            Description: None,
-            Tags: scollector.Tags
+            host: bosun_config.Host,
+            hostname: bosun_config.Hostname,
+            metric: None,
+            value: None,
+            rate: None,
+            unit: None,
+            description: None,
+            tags: bosun_config.Tags
         }
     }
 }
@@ -170,41 +169,41 @@ fn main() {
 }
 
 fn parse_args(cli_args: &ArgMatches) -> Result<Config, Box<Error>> {
-    let config_file_path = Path::new(cli_args.value_of("config").unwrap_or(DEFAULT_CONFIG_FILE));
-    let mut config: Config = if config_file_path.exists() {
-        let scollector: SCollectorConfig = try!(SCollectorConfig::load_from_file(&config_file_path));
-        Config::from_scollector(scollector)
+    let bosun_config_file_path = Path::new(cli_args.value_of("config").unwrap_or(DEFAULT_CONFIG_FILE));
+    let mut config: Config = if bosun_config_file_path.exists() {
+        let bosun_config: BosunConfig = try!(BosunConfig::load_from_scollector_config(&bosun_config_file_path));
+        Config::from_bosun_config(bosun_config)
     } else {
         Config::default()
     };
 
     if cli_args.is_present("host") {
-        config.Host = cli_args.value_of("host").unwrap().to_string();
+        config.host = cli_args.value_of("host").unwrap().to_string();
     }
 
     if cli_args.is_present("hostname") {
-        config.Hostname = cli_args.value_of("hostname").unwrap().to_string();
-        config.Tags.insert("host".to_string(), config.Hostname.to_string());
+        config.hostname = cli_args.value_of("hostname").unwrap().to_string();
+        config.tags.insert("host".to_string(), config.hostname.to_string());
     }
 
     if cli_args.is_present("metric") {
-        config.Metric = Some(cli_args.value_of("metric").unwrap().to_string());
+        config.metric = Some(cli_args.value_of("metric").unwrap().to_string());
     }
 
     if cli_args.is_present("value") {
-        config.Value = Some(cli_args.value_of("value").unwrap().to_string());
+        config.value = Some(cli_args.value_of("value").unwrap().to_string());
     }
 
     if cli_args.is_present("rate") {
-        config.Rate = Some(cli_args.value_of("rate").unwrap().to_string());
+        config.rate = Some(cli_args.value_of("rate").unwrap().to_string());
     }
 
     if cli_args.is_present("unit") {
-        config.Unit = Some(cli_args.value_of("unit").unwrap().to_string());
+        config.unit = Some(cli_args.value_of("unit").unwrap().to_string());
     }
 
     if cli_args.is_present("description") {
-        config.Description = Some(cli_args.value_of("description").unwrap().to_string());
+        config.description = Some(cli_args.value_of("description").unwrap().to_string());
     }
 
     if cli_args.is_present("tags") {
@@ -223,7 +222,7 @@ fn parse_tags(config: &mut Config, tags_string: &str) {
                    (vec[0].to_string(), vec[1].to_string())
                })
                .fold((), |_, (k, v)| {
-                   config.Tags.insert(k, v);
+                   config.tags.insert(k, v);
                });
 }
 
@@ -264,11 +263,11 @@ fn run(config: &Config, mode: Mode, verbose: bool) -> bosun_emitter::EmitterResu
 /// 1. Send only Metadata
 /// 1. Send Datum without Metadata -- only with `--force`
 fn mode(config: &Config, force: bool) -> Result<Mode, ModeError> {
-    let mode_config = (config.Metric.is_some(),
-                       config.Value.is_some(),
-                       config.Rate.is_some(),
-                       config.Unit.is_some(),
-                       config.Description.is_some(),
+    let mode_config = (config.metric.is_some(),
+                       config.value.is_some(),
+                       config.rate.is_some(),
+                       config.unit.is_some(),
+                       config.description.is_some(),
                        force);
     match mode_config {
         (true, true, true, true, true, _) => Ok(Mode::Normal),
@@ -293,19 +292,19 @@ fn exit_with_error(msg: &str, exit_code: i32) -> ! {
 
 fn emit_datum(config: &Config) -> bosun_emitter::EmitterResult {
     // unwraps are safe, because mode analysis already checked these values are set
-    let client = BosunClient::new(&config.Host);
-    let datum = Datum::now(config.Metric.as_ref().unwrap(),
-                           config.Value.as_ref().unwrap(),
-                           &config.Tags);
+    let client = BosunClient::new(&config.host);
+    let datum = Datum::now(config.metric.as_ref().unwrap(),
+                           config.value.as_ref().unwrap(),
+                           &config.tags);
     client.emit_datum(&datum)
 }
 
 fn emit_metadata(config: &Config) -> bosun_emitter::EmitterResult {
     // unwraps are safe, because mode analysis already checked these values are set
-    let client = BosunClient::new(&config.Host);
-    let metadata = Metadata::new(config.Metric.as_ref().unwrap(),
-                                 config.Rate.as_ref().unwrap(),
-                                 config.Unit.as_ref().unwrap(),
-                                 config.Description.as_ref().unwrap());
+    let client = BosunClient::new(&config.host);
+    let metadata = Metadata::new(config.metric.as_ref().unwrap(),
+                                 config.rate.as_ref().unwrap(),
+                                 config.unit.as_ref().unwrap(),
+                                 config.description.as_ref().unwrap());
     client.emit_metadata(&metadata)
 }

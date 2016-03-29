@@ -340,26 +340,33 @@ pub fn now_in_ms() -> i64 {
 #[derive(Debug)]
 #[derive(RustcDecodable)]
 #[allow(non_snake_case)]
-pub struct SCollectorConfig {
+/// Represents connection parameters to reach Bosun as well as default tags to append to each metric
+/// datum.
+pub struct BosunConfig {
+    /// Bosun server host name
     pub Host: String,
+    /// Local host name
     pub Hostname: String,
+    /// Tags to always append to each metric
     pub Tags: Tags,
 }
 
-impl SCollectorConfig {
-    pub fn default() -> SCollectorConfig {
-        SCollectorConfig {
+impl BosunConfig {
+    /// Creates a default configuration for `localhost`, port `8070`.
+    pub fn default() -> BosunConfig {
+        BosunConfig {
             Host: "localhost:8070".to_string(),
             Hostname: "localhost".to_string(),
             Tags: Tags::new(),
         }
     }
 
-    pub fn load_from_file<T: Decodable>(file_path: &Path) -> Result<T, Box<std::error::Error>> {
-        match SCollectorConfig::load_toml(file_path) {
+    /// Loads a configuration from an [SCollector](http://bosun.org/scollector/) configuration file.
+    pub fn load_from_scollector_config(file_path: &Path) -> Result<BosunConfig, Box<std::error::Error>> {
+        match BosunConfig::load_toml(file_path) {
             Ok(toml) => {
                 let mut decoder = toml::Decoder::new(toml);
-                let config = try!(T::decode(&mut decoder));
+                let config = try!(BosunConfig::decode(&mut decoder));
 
                 Ok(config)
             }
