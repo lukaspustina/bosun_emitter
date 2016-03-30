@@ -1,6 +1,6 @@
 [package]
 name = "bosun_emitter"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Lukas Pustina <lukas@pustina.net>"]
 description = "A command line tool and Rust library to emit metric data to StackExchange's monitoring and alerting system Bosun."
 repository = "https://github.com/lukaspustina/bosun_emitter.git"
