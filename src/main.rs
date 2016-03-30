@@ -181,6 +181,7 @@ fn parse_args(cli_args: &ArgMatches) -> Result<Config, Box<Error>> {
         config.host = cli_args.value_of("host").unwrap().to_string();
     }
 
+    config.tags.insert("host".to_string(), config.hostname.to_string());
     if cli_args.is_present("hostname") {
         config.hostname = cli_args.value_of("hostname").unwrap().to_string();
         config.tags.insert("host".to_string(), config.hostname.to_string());
