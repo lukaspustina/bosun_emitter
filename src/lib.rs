@@ -130,7 +130,7 @@ impl BosunClient {
     /// ```
     pub fn emit_metadata(&self, metadata: &Metadata) -> EmitterResult {
         let encoded = try!(metadata.to_json());
-        let res = BosunClient::send_to_bosun_api(&self.host, "api/metadata/put", &encoded);
+        let res = BosunClient::send_to_bosun_api(&self.host, "/api/metadata/put", &encoded);
         info!("Sent medata '{:?}' to '{:?}' with result: '{:?}'.",
               encoded,
               self.host,
@@ -154,7 +154,7 @@ impl BosunClient {
     /// ```
     pub fn emit_datum(&self, datum: &Datum) -> EmitterResult {
         let encoded = try!(datum.to_json());
-        let res = BosunClient::send_to_bosun_api(&self.host, "api/put", &encoded);
+        let res = BosunClient::send_to_bosun_api(&self.host, "/api/put", &encoded);
         info!("Sent datum '{:?}' to '{:?}' with result: '{:?}'.",
               encoded,
               &self.host,
@@ -185,7 +185,7 @@ impl BosunClient {
                result);
 
         let splitter: Vec<&str> = result.split_whitespace().collect();
-        if splitter.len() != 3 {
+        if splitter.len() < 3 {
             let underlying = std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid response");
             return Err(EmitterError::EmitError(underlying))
         }
