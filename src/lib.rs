@@ -334,7 +334,6 @@ impl<'a> Datum<'a> {
 /// Returns Unix timestamp in ms.
 pub fn now_in_ms() -> i64 {
     let now = chrono::Local::now();
-    println!("{}.{}", now.timestamp(), now.nanosecond());
     now.timestamp() * 1000 + (now.nanosecond() / 1_000_000) as i64
 }
 
