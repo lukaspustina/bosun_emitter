@@ -209,22 +209,25 @@ fn parse_args(cli_args: &ArgMatches) -> Result<Config, Box<Error>> {
 
     if cli_args.is_present("tags") {
         let tags_string = cli_args.value_of("tags").unwrap().to_string();
-        parse_tags(&mut config, &tags_string);
+        try!(parse_tags(&mut config, &tags_string));
     }
 
     Ok(config)
 }
 
-fn parse_tags(config: &mut Config, tags_string: &str) {
-    tags_string.split(',')
-               .map(|kv| kv.split('=').collect::<Vec<&str>>())
-               .map(|vec| {
-                   assert_eq!(vec.len(), 2);
-                   (vec[0].to_string(), vec[1].to_string())
-               })
-               .fold((), |_, (k, v)| {
-                   config.tags.insert(k, v);
-               });
+fn parse_tags(config: &mut Config, tags_string: &str) -> Result<(), String> {
+    let tags = tags_string.split(',');
+    for tag in tags {
+        let kv = tag.split('=').collect::<Vec<&str>>();
+        if kv.len() != 2 {
+            return Err(format!("unable to parse tags: '{}'", tags_string));
+        }
+        let k = kv[0].to_string();
+        let v = kv[1].to_string();
+        config.tags.insert(k, v);
+    }
+
+    Ok(())
 }
 
 enum Mode {
@@ -249,7 +252,7 @@ fn run(config: &Config, mode: Mode, verbose: bool) -> bosun_emitter::EmitterResu
             emit_datum(config)
         }
         Mode::MetadataOnly => {
-            msg("Sending meta data.", verbose);
+           msg("Sending meta data.", verbose);
             emit_metadata(config)
         }
         Mode::DatumOnly => {
@@ -309,3 +312,29 @@ fn emit_metadata(config: &Config) -> bosun_emitter::EmitterResult {
                                  config.description.as_ref().unwrap());
     client.emit_metadata(&metadata)
 }
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::{Config, parse_tags};
+
+    #[test]
+    fn parse_tags_test_okay() {
+        let mut config = Config::default();
+        let tags = "key1=val1,key2=val2";
+        let _ = parse_tags(&mut config, &tags);
+        assert_eq!(config.tags.len(), 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion failed")]
+    fn parse_tags_test_fails_wrong_kv_separator() {
+        let mut config = Config::default();
+        let tags = "key1=val1,key2:val2";
+        let _ = parse_tags(&mut config, &tags);
+        assert_eq!(config.tags.len(), 2);
+    }
+}
+
+
