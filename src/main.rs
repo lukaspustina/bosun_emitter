@@ -53,7 +53,7 @@ fn main() {
         exit_with_error("Could not initiliaze logger", -1);
     }
 
-    let cli_args = App::new("Emit a Bosun")
+    let app = App::new("Emit a Bosun")
                        .version(VERSION)
                        .after_help("Two modes are supported, i.e., sending a datum with meta \
                                     data or sending only meta data. The modes are controlled \
@@ -126,8 +126,8 @@ fn main() {
                        .arg(Arg::with_name("force")
                                 .hidden(true)
                                 .long("force")
-                                .help("Forces metric datum to be send even without meta data"))
-                       .get_matches();
+                                .help("Forces metric datum to be send even without meta data"));
+    let cli_args = app.get_matches();
 
     let force: bool = cli_args.is_present("force");
     let verbose: bool = cli_args.is_present("verbose");
@@ -147,8 +147,8 @@ fn main() {
         Err(ModeError::NoMetadata) => exit_with_error("Cannot send datum without meta data.", -11),
         Err(ModeError::NoValue) => exit_with_error("Cannot send datum without value.", -12),
         Err(ModeError::NoSuchMode) => {
-            exit_with_error("Command line arguments combination does not make any sense.",
-                            -13);
+            println!("Command line arguments combination does not make any sense.\n\n{}", cli_args.usage());
+            exit_with_error("", -13);
         }
     };
 
