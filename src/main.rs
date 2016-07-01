@@ -1,5 +1,6 @@
 //! emit_bosun -- Emits a single metric datum and corresponding metric meta data to [Bosun](http:////bosun.org).
 
+#[macro_use]
 extern crate clap;
 extern crate env_logger;
 #[macro_use]
@@ -21,7 +22,7 @@ struct Config {
     host: String,
     hostname: String,
     metric: Option<String>,
-    value: Option<String>,
+    value: Option<f64>,
     rate: Option<String>,
     unit: Option<String>,
     description: Option<String>,
@@ -192,7 +193,7 @@ fn parse_args(cli_args: &ArgMatches) -> Result<Config, Box<Error>> {
     }
 
     if cli_args.is_present("value") {
-        config.value = Some(cli_args.value_of("value").unwrap().to_string());
+        config.value = Some(value_t!(cli_args.value_of("value"), f64).unwrap());
     }
 
     if cli_args.is_present("rate") {
@@ -298,7 +299,7 @@ fn emit_datum(config: &Config) -> bosun_emitter::EmitterResult {
     // unwraps are safe, because mode analysis already checked these values are set
     let client = BosunClient::new(&config.host);
     let datum = Datum::now(config.metric.as_ref().unwrap(),
-                           config.value.as_ref().unwrap(),
+                           config.value.unwrap(),
                            &config.tags);
     client.emit_datum(&datum)
 }

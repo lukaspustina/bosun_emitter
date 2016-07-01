@@ -22,7 +22,7 @@
 //! let _ = client.emit_metadata(&metadata);
 //!
 //! let tags: Tags = Tags::new();
-//! let datum = Datum::new(&metric, now_in_ms(), "42", &tags);
+//! let datum = Datum::new(&metric, now_in_ms(), 42f64, &tags);
 //!
 //! match client.emit_datum(&datum) {
 //!     Ok(_) => {}
@@ -147,7 +147,7 @@ impl BosunClient {
     /// # use bosun_emitter::{BosunClient, Datum, Tags};
     /// let mut tags = Tags::new();
     /// tags.insert("host".to_string(), "test-vm".to_string());
-    /// let datum = Datum::new("lukas.tests.count", 1458066838, "1", &tags);
+    /// let datum = Datum::new("lukas.tests.count", 1458066838, 1f64, &tags);
     ///
     /// let client = BosunClient::new("localhost:8070");
     /// let _ = client.emit_datum(&datum);
@@ -275,7 +275,7 @@ pub struct Datum<'a> {
     /// Unix timestamp in either _s_ or _ms_
     pub timestamp: i64,
     /// Value as string representation
-    pub value: &'a str,
+    pub value: f64,
     /// Tags for this metric datum
     pub tags: &'a Tags,
 }
@@ -284,8 +284,7 @@ impl<'a> Datum<'a> {
     /// Creates a new metric datum with a specified timestamp in ms.
     pub fn new(metric: &'a str,
                timestamp: i64,
-               value: &'a str,
-               // TODO: make me use refs
+               value: f64,
                tags: &'a Tags)
                -> Datum<'a> {
         Datum {
@@ -297,8 +296,7 @@ impl<'a> Datum<'a> {
     }
     /// Creates a new metric datum with timestamp _now_.
     pub fn now(metric: &'a str,
-               value: &'a str,
-               // TODO: make me use refs
+               value: f64,
                tags: &'a Tags)
                -> Datum<'a> {
         Datum {
@@ -317,10 +315,10 @@ impl<'a> Datum<'a> {
     /// # use bosun_emitter::{Datum, Tags};
     /// let mut tags = Tags::new();
     /// tags.insert("host".to_string(), "test-vm".to_string());
-    /// let datum = Datum::new("lukas.tests.count", 1458066838, "1", &tags);
+    /// let datum = Datum::new("lukas.tests.count", 1458066838, 1f64, &tags);
     /// let json = datum.to_json().unwrap();
     ///
-    /// # let expected = "{\"metric\":\"lukas.tests.count\",\"timestamp\":1458066838,\"value\":\"1\",\"tags\":{\"host\":\"test-vm\"}}";
+    /// # let expected = "{\"metric\":\"lukas.tests.count\",\"timestamp\":1458066838,\"value\":1.0,\"tags\":{\"host\":\"test-vm\"}}";
     /// # assert_eq!(expected, json);
     /// ```
     pub fn to_json(&self) -> Result<String, EmitterError> {

@@ -49,13 +49,13 @@ fn send_metadata() {
 fn send_datum() {
     let metric = "lukas.tests.count";
     let now = now_in_ms();
-    let value = "42";
+    let value = 42f64;
     let tags: Tags = Tags::new();
 
     let port = 18071; // Actually, we should generate a random port number and check, if it is free
     let server = run_server(port);
     let client = BosunClient::new(&format!("localhost:{}", port));
-    let datum = Datum::new(&metric, now, &value, &tags);
+    let datum = Datum::new(&metric, now, value, &tags);
     let result = client.emit_datum(&datum);
     assert!(result.is_ok());
 
@@ -68,7 +68,7 @@ fn send_datum() {
     let json = Json::from_str(output.lines().last().unwrap()).unwrap();
     assert_eq!(json.find("metric").unwrap().as_string().unwrap(), metric);
     assert_eq!(json.find("timestamp").unwrap().as_i64().unwrap(), now);
-    assert_eq!(json.find("value").unwrap().as_string().unwrap(), value);
+    assert_eq!(json.find("value").unwrap().as_f64().unwrap(), value);
     assert!(json.find("tags").unwrap().is_object());
     assert!(json.find("tags").unwrap().as_object().unwrap().is_empty());
 }
