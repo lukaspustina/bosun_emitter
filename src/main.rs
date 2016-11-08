@@ -7,12 +7,14 @@ extern crate log;
 
 extern crate bosun_emitter;
 
-use clap::{Arg, ArgMatches, App};
+use clap::{Arg, ArgMatches, App, Shell};
+use std::io;
 use std::error::Error;
 use std::path::Path;
 
 use bosun_emitter::{BosunClient, Metadata, Datum, Tags, EmitterError, BosunConfig};
 
+static BIN_NAME: &'static str = "emit_bosun";
 static VERSION: &'static str = env!("CARGO_PKG_VERSION");
 static DEFAULT_CONFIG_FILE: &'static str = "/etc/bosun/scollector.conf";
 
@@ -53,81 +55,13 @@ fn main() {
         exit_with_error("Could not initiliaze logger", -1);
     }
 
-    let app = App::new("Emit a Bosun")
-                       .version(VERSION)
-                       .after_help("Two modes are supported, i.e., sending a datum with meta \
-                                    data or sending only meta data. The modes are controlled \
-                                    whether a value `--value` is passed or not. Please mind that \
-                                    in both cases the meta data is required.")
-                       .arg(Arg::with_name("config")
-                                .short("c")
-                                .long("config")
-                                .value_name("FILE")
-                                .help("Sets a custom config file")
-                                .takes_value(true))
-                       .arg(Arg::with_name("host")
-                                .long("host")
-                                .value_name("HOST:PORT")
-                                .help("Sets Bosun server connection parameters")
-                                .takes_value(true))
-                       .arg(Arg::with_name("hostname")
-                                .long("hostname")
-                                .value_name("HOSTNAME")
-                                .help("Sets hostname")
-                                .takes_value(true))
-                       .arg(Arg::with_name("metric")
-                                .short("m")
-                                .long("metric")
-                                .value_name("METRIC NAME")
-                                .help("Sets metric name")
-                                .takes_value(true))
-                       .arg(Arg::with_name("value")
-                                .requires("metric")
-                                .short("v")
-                                .long("value")
-                                .value_name("VALUE")
-                                .help("Sets metric value")
-                                .takes_value(true))
-                       .arg(Arg::with_name("rate")
-                                .requires_all(&["metric", "rate", "unit", "description"])
-                                .short("r")
-                                .long("rate")
-                                .value_name("RATE")
-                                .possible_values(&["gauge", "counter", "rate"])
-                                .help("Sets rate type")
-                                .takes_value(true))
-                       .arg(Arg::with_name("unit")
-                                .requires_all(&["metric", "rate", "unit", "description"])
-                                .short("u")
-                                .long("unit")
-                                .value_name("UNIT")
-                                .help("Sets metric value unit")
-                                .takes_value(true))
-                       .arg(Arg::with_name("description")
-                                .requires_all(&["metric", "rate", "unit", "description"])
-                                .short("d")
-                                .long("description")
-                                .value_name("DESCRIPTION")
-                                .help("Sets metric description")
-                                .takes_value(true))
-                       .arg(Arg::with_name("tags")
-                                .use_delimiter(false)
-                                .short("t")
-                                .long("tags")
-                                .value_name("KEY1=VALUE1,KEY2=VALUE2,...")
-                                .help("Sets tags")
-                                .takes_value(true))
-                       .arg(Arg::with_name("show-config")
-                                .long("show-config")
-                                .help("Prints config"))
-                       .arg(Arg::with_name("verbose")
-                                .long("verbose")
-                                .help("Enables verbose output"))
-                       .arg(Arg::with_name("force")
-                                .hidden(true)
-                                .long("force")
-                                .help("Forces metric datum to be send even without meta data"));
-    let cli_args = app.get_matches();
+    let cli_args = build_cli().get_matches();
+
+    if cli_args.is_present("completions") {
+        let shell= cli_args.value_of("completions").unwrap();
+        build_cli().gen_completions_to(BIN_NAME, shell.parse::<Shell>().unwrap(), &mut io::stdout());
+        return;
+    }
 
     let force: bool = cli_args.is_present("force");
     let verbose: bool = cli_args.is_present("verbose");
@@ -167,6 +101,91 @@ fn main() {
         }
     }
 }
+
+fn build_cli() -> App<'static, 'static> {
+    App::new("Emit a Bosun")
+           .version(VERSION)
+           .after_help("Two modes are supported, i.e., sending a datum with meta \
+                        data or sending only meta data. The modes are controlled \
+                        whether a value `--value` is passed or not. Please mind that \
+                        in both cases the meta data is required.")
+           .arg(Arg::with_name("config")
+                    .short("c")
+                    .long("config")
+                    .value_name("FILE")
+                    .help("Sets a custom config file")
+                    .takes_value(true))
+           .arg(Arg::with_name("host")
+                    .long("host")
+                    .value_name("HOST:PORT")
+                    .help("Sets Bosun server connection parameters")
+                    .takes_value(true))
+           .arg(Arg::with_name("hostname")
+                    .long("hostname")
+                    .value_name("HOSTNAME")
+                    .help("Sets hostname")
+                    .takes_value(true))
+           .arg(Arg::with_name("metric")
+                    .short("m")
+                    .long("metric")
+                    .value_name("METRIC NAME")
+                    .help("Sets metric name")
+                    .takes_value(true))
+           .arg(Arg::with_name("value")
+                    .requires("metric")
+                    .short("v")
+                    .long("value")
+                    .value_name("VALUE")
+                    .help("Sets metric value")
+                    .takes_value(true))
+           .arg(Arg::with_name("rate")
+                    .requires_all(&["metric", "rate", "unit", "description"])
+                    .short("r")
+                    .long("rate")
+                    .value_name("RATE")
+                    .possible_values(&["gauge", "counter", "rate"])
+                    .help("Sets rate type")
+                    .takes_value(true))
+           .arg(Arg::with_name("unit")
+                    .requires_all(&["metric", "rate", "unit", "description"])
+                    .short("u")
+                    .long("unit")
+                    .value_name("UNIT")
+                    .help("Sets metric value unit")
+                    .takes_value(true))
+           .arg(Arg::with_name("description")
+                    .requires_all(&["metric", "rate", "unit", "description"])
+                    .short("d")
+                    .long("description")
+                    .value_name("DESCRIPTION")
+                    .help("Sets metric description")
+                    .takes_value(true))
+           .arg(Arg::with_name("tags")
+                    .use_delimiter(false)
+                    .short("t")
+                    .long("tags")
+                    .value_name("KEY1=VALUE1,KEY2=VALUE2,...")
+                    .help("Sets tags")
+                    .takes_value(true))
+           .arg(Arg::with_name("show-config")
+                    .long("show-config")
+                    .help("Prints config"))
+           .arg(Arg::with_name("verbose")
+                    .long("verbose")
+                    .help("Enables verbose output"))
+           .arg(Arg::with_name("force")
+                    .hidden(true)
+                    .long("force")
+                    .help("Forces metric datum to be send even without meta data"))
+            .arg(Arg::with_name("completions")
+                    .long("completions")
+                    .takes_value(true)
+                    .hidden(true)
+                    .possible_values(&["bash", "fish", "zsh"])
+                    .help("The shell to generate the script for"))
+}
+
+
 
 fn parse_args(cli_args: &ArgMatches) -> Result<Config, Box<Error>> {
     let bosun_config_file_path = Path::new(cli_args.value_of("config").unwrap_or(DEFAULT_CONFIG_FILE));
