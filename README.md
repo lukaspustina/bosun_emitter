@@ -40,7 +40,7 @@ FLAGS:
 OPTIONS:
     -c, --config <FILE>                         Sets a custom config file
     -d, --description <DESCRIPTION>             Sets metric description
-        --host <HOST:PORT>                      Sets Bosun server connection parameters
+        --host <HOST:PORT>                      Sets Bosun server connection parameters; may include basic auth and https
         --hostname <HOSTNAME>                   Sets hostname
     -m, --metric <METRIC NAME>                  Sets metric name
     -r, --rate <RATE>                           Sets rate type [values: gauge, counter, rate]
@@ -56,7 +56,7 @@ not. Please mind that in both cases the meta data is required.
 ### Example
 
 ```bash
-emit_bosun -c examples/scollector.toml --host localhost:8070 --tags 'key1=value1,key2=value2' \
+emit_bosun -c examples/scollector.toml --host https://user:password@localhost:8070 --tags 'key1=value1,key2=value2' \
   --metric lukas.test --value 10 \
   --rate gauge --unit Tests -d "Amount of Lukas Tests" \
   --verbose

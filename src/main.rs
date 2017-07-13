@@ -67,7 +67,7 @@ fn main() {
                        .arg(Arg::with_name("host")
                                 .long("host")
                                 .value_name("HOST:PORT")
-                                .help("Sets Bosun server connection parameters")
+                                .help("Sets Bosun server connection parameters; may include basic auth and https")
                                 .takes_value(true))
                        .arg(Arg::with_name("hostname")
                                 .long("hostname")
