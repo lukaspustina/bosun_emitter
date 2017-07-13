@@ -30,6 +30,42 @@ fn send_metadata() {
 
     assert!(output.find("POST /api/metadata/put HTTP/1.1").is_some());
     assert!(output.find("Content-Type: application/json; charset=utf-8").is_some());
+    assert!(output.find("Authorization: Basic").is_none());
+    let json = Json::from_str(output.lines().last().unwrap()).unwrap();
+    assert!(json.is_array());
+    let array = json.as_array().unwrap();
+    assert_eq!(array.len(), 3);
+    assert_eq!(array[0].find("metric").unwrap().as_string().unwrap(), metric);
+    assert_eq!(array[0].find("name").unwrap().as_string().unwrap(), "unit");
+    assert_eq!(array[0].find("value").unwrap().as_string().unwrap(), unit);
+    assert_eq!(array[1].find("metric").unwrap().as_string().unwrap(), metric);
+    assert_eq!(array[1].find("name").unwrap().as_string().unwrap(), "rate");
+    assert_eq!(array[1].find("value").unwrap().as_string().unwrap(), rate);
+    assert_eq!(array[2].find("metric").unwrap().as_string().unwrap(), metric);
+    assert_eq!(array[2].find("name").unwrap().as_string().unwrap(), "desc");
+    assert_eq!(array[2].find("value").unwrap().as_string().unwrap(), description);
+}
+
+#[test]
+fn send_metadata_with_basic_auth() {
+    let metric = "lukas.tests.count";
+    let rate = "counter";
+    let unit = "Tests";
+    let description = "Amount of Lukas Tests";
+
+    let port = 18071; // Actually, we should generate a random port number and check, if it is free
+    let server = run_server(port);
+    let client = BosunClient::new(&format!("http://lukas:password@localhost:{}", port));
+    let metadata = Metadata::new(&metric, &rate, &unit, &description);
+    let result = client.emit_metadata(&metadata);
+    assert!(result.is_ok());
+
+    let output = server.recv()
+                      .unwrap_or_else(|e| panic!("failed to wait on child: {}", e));
+
+    assert!(output.find("POST /api/metadata/put HTTP/1.1").is_some());
+    assert!(output.find("Content-Type: application/json; charset=utf-8").is_some());
+    assert!(output.find("Authorization: Basic bHVrYXM6cGFzc3dvcmQ=").is_some());
     let json = Json::from_str(output.lines().last().unwrap()).unwrap();
     assert!(json.is_array());
     let array = json.as_array().unwrap();
@@ -52,7 +88,7 @@ fn send_datum() {
     let value = "42";
     let tags: Tags = Tags::new();
 
-    let port = 18071; // Actually, we should generate a random port number and check, if it is free
+    let port = 18072; // Actually, we should generate a random port number and check, if it is free
     let server = run_server(port);
     let client = BosunClient::new(&format!("localhost:{}", port));
     let datum = Datum::new(&metric, now, &value, &tags);
@@ -64,7 +100,7 @@ fn send_datum() {
 
     assert!(output.find("POST /api/put HTTP/1.1").is_some());
     assert!(output.find("Content-Type: application/json; charset=utf-8").is_some());
-
+    assert!(output.find("Authorization: Basic").is_none());
     let json = Json::from_str(output.lines().last().unwrap()).unwrap();
     assert_eq!(json.find("metric").unwrap().as_string().unwrap(), metric);
     assert_eq!(json.find("timestamp").unwrap().as_i64().unwrap(), now);
@@ -82,9 +118,9 @@ fn run_server(port: u16) -> Receiver<String> {
         let stream = listener.accept();
         match stream {
             Ok((mut stream, _)) => {
-                let mut data = [0; 1024];
+                let mut data = [0; 2048];
                 let len = stream.read(&mut data);
-                let _ = stream.write("HTTP/1.1 204 NoContent\r\n".as_bytes());
+                let _ = stream.write("HTTP/1.1 204 NoContent\r\n\r\n".as_bytes());
                 let data_str = String::from_utf8_lossy(&data[0..len.unwrap()]).to_string();
                 let _ = tx.send(data_str);
             }

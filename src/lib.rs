@@ -26,9 +26,9 @@
 //!
 //! match client.emit_datum(&datum) {
 //!     Ok(_) => {}
-//!     Err(EmitterError::JsonParseError(e)) => panic!("Failed to create JSON document."),
-//!     Err(EmitterError::EmitError(e)) => panic!("Failed to send."),
-//!     Err(EmitterError::ReceiveError(e)) => panic!("Failed to create resource."),
+//!     Err(EmitterError::JsonParseError(_)) => panic!("Failed to create JSON document."),
+//!     Err(EmitterError::EmitError(_)) => panic!("Failed to send."),
+//!     Err(EmitterError::ReceiveError(_)) => panic!("Failed to create resource."),
 //! }
 //! ```
 //!
@@ -62,20 +62,23 @@
 #![deny(missing_docs)]
 
 extern crate chrono;
+extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate rustc_serialize;
 extern crate toml;
 
 use chrono::Timelike;
+use hyper::{Client, Url};
+use hyper::header::{Headers, Authorization, Basic, ContentType};
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use rustc_serialize::Decodable;
 use rustc_serialize::json;
 use rustc_serialize::json::EncoderError;
 use std::collections::HashMap;
 use std::convert::From;
 use std::fs::File;
-use std::io::{Read, Write};
-use std::net::TcpStream;
+use std::io::Read;
 use std::path::Path;
 
 /// Result of an attempt to send meta data or a metric datum
@@ -87,14 +90,14 @@ pub enum EmitterError {
     /// Failed to create JSON.
     JsonParseError(EncoderError),
     /// Failed to send JSON.
-    EmitError(std::io::Error),
+    EmitError(String),
     /// Failed to create Datum on server.
     ReceiveError(String),
 }
 
 impl From<std::io::Error> for EmitterError {
     fn from(err: std::io::Error) -> EmitterError {
-        EmitterError::EmitError(err)
+        EmitterError::EmitError(format!("{}", err))
     }
 }
 
@@ -164,34 +167,48 @@ impl BosunClient {
     }
 
     fn send_to_bosun_api(host: &str, path: &str, json: &str) -> EmitterResult {
-        let mut stream = try!(TcpStream::connect(host));
-        let content = json.as_bytes();
-        let content_length = content.len();
-        let data_str = format!("POST {} HTTP/1.1\nContent-Length: {}\nHost: {}\nContent-Type: application/json; charset=utf-8\n\n{}", path, content_length, host, json);
-        let data = data_str.as_bytes();
+        let client = Client::new();
+        let uri = if host.starts_with("http") {
+            format!("{}{}", host, path)
+        } else {
+            format!("http://{}{}", host, path)
+        };
+        let url = Url::parse(&uri).unwrap();
 
-        let tx_res = try!(stream.write(&data));
-        if tx_res < data.len() {
-            let underlying = std::io::Error::new(std::io::ErrorKind::Interrupted, "Failed to send request.");
-            return Err(EmitterError::EmitError(underlying))
+
+        let mut headers = Headers::new();
+        headers.set(
+            ContentType(
+                Mime(
+                    TopLevel::Application,
+                    SubLevel::Json,
+                    vec![(Attr::Charset, Value::Utf8)]
+                )
+            )
+        );
+        if url.has_authority() && url.password().is_some() {
+            let password = match url.password() {
+                Some(p) => Some(p.to_owned()),
+                None => None
+            };
+            headers.set(
+               Authorization(
+                   Basic {
+                       username: url.username().to_owned(),
+                       password: password
+                   }
+               )
+            );
         }
 
-        let mut result_data = [0; 1024];
-        let rx_len = try!(stream.read(&mut result_data));
-        let result = String::from_utf8_lossy(&result_data[0..rx_len]).to_string();
-        debug!("send_to_bosun_api: Request to '{}/{}', Result: '{:?}'.",
-               host,
-               path,
-               result);
-
-        let splitter: Vec<&str> = result.split_whitespace().collect();
-        if splitter.len() < 3 {
-            let underlying = std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid response");
-            return Err(EmitterError::EmitError(underlying))
-        }
-        match splitter[1] {
-            "204" => Ok(()),
-            status_code => Err(EmitterError::ReceiveError(status_code.to_string())),
+        let res = client.post(&uri)
+            .headers(headers)
+            .body(json)
+            .send();
+        match res {
+            Ok(ref response) if response.status == hyper::status::StatusCode::NoContent => Ok(()),
+            Ok(response) => Err(EmitterError::ReceiveError(format!("{}", response.status))),
+            Err(err) => Err(EmitterError::EmitError(format!("{}", err))),
         }
     }
 }
