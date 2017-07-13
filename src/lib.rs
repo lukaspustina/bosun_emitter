@@ -63,6 +63,7 @@
 
 extern crate chrono;
 extern crate hyper;
+extern crate hyper_native_tls;
 #[macro_use]
 extern crate log;
 extern crate rustc_serialize;
@@ -72,6 +73,8 @@ use chrono::Timelike;
 use hyper::{Client, Url};
 use hyper::header::{Headers, Authorization, Basic, ContentType};
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use hyper::net::HttpsConnector;
+use hyper_native_tls::NativeTlsClient;
 use rustc_serialize::Decodable;
 use rustc_serialize::json;
 use rustc_serialize::json::EncoderError;
@@ -167,7 +170,6 @@ impl BosunClient {
     }
 
     fn send_to_bosun_api(host: &str, path: &str, json: &str) -> EmitterResult {
-        let client = Client::new();
         let uri = if host.starts_with("http") {
             format!("{}{}", host, path)
         } else {
@@ -175,6 +177,13 @@ impl BosunClient {
         };
         let url = Url::parse(&uri).unwrap();
 
+        let client = if url.scheme() == "https" {
+            let ssl = NativeTlsClient::new().unwrap();
+            let connector = HttpsConnector::new(ssl);
+            Client::with_connector(connector)
+        } else {
+            Client::new()
+        };
 
         let mut headers = Headers::new();
         headers.set(
