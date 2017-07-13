@@ -1,6 +1,6 @@
 # Bosun Emitter
 
-[![Linux & OS X Build Status](https://img.shields.io/travis/lukaspustina/bosun_emitter.svg?label=Linux%20%26%20OS%20X%20Build%20Status)](https://travis-ci.org/lukaspustina/bosun_emitter) [![Windows Build status](https://img.shields.io/appveyor/ci/lukaspustina/bosun-emitter.svg?label=Windows%20Build%20Status)](https://ci.appveyor.com/project/lukaspustina/bosun-emitter/branch/master) [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg?label=License)](./LICENSE) [![](http://meritbadge.herokuapp.com/bosun_emitter)](https://crates.io/crates/bosun_emitter)
+[![Linux & OS X Build Status](https://img.shields.io/travis/lukaspustina/bosun_emitter.svg?label=Linux%20%26%20OS%20X%20Build%20Status)](https://travis-ci.org/lukaspustina/bosun_emitter) [![Windows Build status](https://img.shields.io/appveyor/ci/lukaspustina/bosun-emitter.svg?label=Windows%20Build%20Status)](https://ci.appveyor.com/project/lukaspustina/bosun-emitter/branch/master) [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg?label=License)](./LICENSE) [![](https://img.shields.io/crates/v/bosun_emitter.svg)](https://crates.io/crates/bosun_emitter)
 
 A command line tool and [Rust](http://www.rust-lang.org) library to emit metric data to [Bosun](http://bosun.org).
 
