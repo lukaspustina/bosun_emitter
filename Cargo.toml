@@ -21,7 +21,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap = "2"
-chrono = "0.2"
+chrono = "0.4"
 env_logger = "0.3"
 hyper = "0.10"
 hyper-native-tls = "0.2"
