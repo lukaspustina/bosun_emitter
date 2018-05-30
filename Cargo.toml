@@ -30,5 +30,5 @@ rustc-serialize = "0.3"
 toml = "0.1"
 
 [dev-dependencies]
-mktemp = "0.1.2"
+mktemp = "0.3.1"
 
