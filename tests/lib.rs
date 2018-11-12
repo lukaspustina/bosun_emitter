@@ -29,8 +29,8 @@ fn send_metadata() {
                       .unwrap_or_else(|e| panic!("failed to wait on child: {}", e));
 
     assert!(output.find("POST /api/metadata/put HTTP/1.1").is_some());
-    assert!(output.find("Content-Type: application/json; charset=utf-8").is_some());
-    assert!(output.find("Authorization: Basic").is_none());
+    assert!(output.find("content-type: application/json; charset=utf-8").is_some());
+    assert!(output.find("authorization: Basic").is_none());
     let json = Json::from_str(output.lines().last().unwrap()).unwrap();
     assert!(json.is_array());
     let array = json.as_array().unwrap();
@@ -66,8 +66,8 @@ fn send_metadata_with_basic_auth() {
     println!("Output: {}", output);
 
     assert!(output.find("POST /api/metadata/put HTTP/1.1").is_some());
-    assert!(output.find("Content-Type: application/json; charset=utf-8").is_some());
-    assert!(output.find("Authorization: Basic bHVrYXM6cGFzc3dvcmQ=").is_some());
+    assert!(output.find("content-type: application/json; charset=utf-8").is_some());
+    assert!(output.find("authorization: Basic bHVrYXM6cGFzc3dvcmQ=").is_some());
     let json = Json::from_str(output.lines().last().unwrap()).unwrap();
     assert!(json.is_array());
     let array = json.as_array().unwrap();
@@ -101,8 +101,8 @@ fn send_datum() {
                       .unwrap_or_else(|e| panic!("failed to wait on child: {}", e));
 
     assert!(output.find("POST /api/put HTTP/1.1").is_some());
-    assert!(output.find("Content-Type: application/json; charset=utf-8").is_some());
-    assert!(output.find("Authorization: Basic").is_none());
+    assert!(output.find("content-type: application/json; charset=utf-8").is_some());
+    assert!(output.find("authorization: Basic").is_none());
     let json = Json::from_str(output.lines().last().unwrap()).unwrap();
     assert_eq!(json.find("metric").unwrap().as_string().unwrap(), metric);
     assert_eq!(json.find("timestamp").unwrap().as_i64().unwrap(), now);

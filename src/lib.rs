@@ -15,7 +15,7 @@
 //! ```no_run
 //! use bosun_emitter::{BosunClient, Datum, EmitterError, Metadata, now_in_ms, Tags};
 //!
-//! let client = BosunClient::new("localhost:8070");
+//! let client = BosunClient::new("localhost:8070", 5);
 //! let metric = "lukas.tests.count";
 //!
 //! let metadata = Metadata::new(&metric, "counter", "Test", "Amount of Lukas Tests");
@@ -129,7 +129,7 @@ impl BosunClient {
     /// # use bosun_emitter::{BosunClient, Metadata};
     /// let metadata = Metadata::new("lukas.tests.count", "counter", "Tests", "Amount of Lukas Tests");
     ///
-    /// let client = BosunClient::new("localhost:8070");
+    /// let client = BosunClient::new("localhost:8070", 5);
     /// let _ = client.emit_metadata(&metadata);
     /// ```
     pub fn emit_metadata(&self, metadata: &Metadata) -> EmitterResult {
@@ -154,7 +154,7 @@ impl BosunClient {
     /// tags.insert("host".to_string(), "test-vm".to_string());
     /// let datum = Datum::new("lukas.tests.count", 1458066838, "1", &tags);
     ///
-    /// let client = BosunClient::new("localhost:8070");
+    /// let client = BosunClient::new("localhost:8070", 5);
     /// let _ = client.emit_datum(&datum);
     /// ```
     pub fn emit_datum(&self, datum: &Datum) -> EmitterResult {
