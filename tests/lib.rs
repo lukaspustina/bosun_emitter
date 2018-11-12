@@ -20,7 +20,7 @@ fn send_metadata() {
 
     let port = 18070; // Actually, we should generate a random port number and check, if it is free
     let server = run_server(port);
-    let client = BosunClient::new(&format!("localhost:{}", port));
+    let client = BosunClient::new(&format!("localhost:{}", port), 5);
     let metadata = Metadata::new(&metric, &rate, &unit, &description);
     let result = client.emit_metadata(&metadata);
     assert!(result.is_ok());
@@ -55,13 +55,15 @@ fn send_metadata_with_basic_auth() {
 
     let port = 18071; // Actually, we should generate a random port number and check, if it is free
     let server = run_server(port);
-    let client = BosunClient::new(&format!("http://lukas:password@localhost:{}", port));
+    let client = BosunClient::new(&format!("http://lukas:password@localhost:{}", port), 5);
     let metadata = Metadata::new(&metric, &rate, &unit, &description);
     let result = client.emit_metadata(&metadata);
     assert!(result.is_ok());
 
     let output = server.recv()
                       .unwrap_or_else(|e| panic!("failed to wait on child: {}", e));
+
+    println!("Output: {}", output);
 
     assert!(output.find("POST /api/metadata/put HTTP/1.1").is_some());
     assert!(output.find("Content-Type: application/json; charset=utf-8").is_some());
@@ -90,7 +92,7 @@ fn send_datum() {
 
     let port = 18072; // Actually, we should generate a random port number and check, if it is free
     let server = run_server(port);
-    let client = BosunClient::new(&format!("localhost:{}", port));
+    let client = BosunClient::new(&format!("localhost:{}", port), 5);
     let datum = Datum::new(&metric, now, &value, &tags);
     let result = client.emit_datum(&datum);
     assert!(result.is_ok());

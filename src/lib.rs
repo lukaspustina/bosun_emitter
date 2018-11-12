@@ -62,19 +62,14 @@
 #![deny(missing_docs)]
 
 extern crate chrono;
-extern crate hyper;
-extern crate hyper_native_tls;
 #[macro_use]
 extern crate log;
+extern crate reqwest;
 extern crate rustc_serialize;
 extern crate toml;
 
 use chrono::Timelike;
-use hyper::{Client, Url};
-use hyper::header::{Headers, Authorization, Basic, ContentType};
-use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-use hyper::net::HttpsConnector;
-use hyper_native_tls::NativeTlsClient;
+use reqwest::{Url, StatusCode};
 use rustc_serialize::Decodable;
 use rustc_serialize::json;
 use rustc_serialize::json::EncoderError;
@@ -83,6 +78,7 @@ use std::convert::From;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::time::Duration;
 
 /// Result of an attempt to send meta data or a metric datum
 pub type EmitterResult = Result<(), EmitterError>;
@@ -115,12 +111,14 @@ impl From<EncoderError> for EmitterError {
 pub struct BosunClient {
     /// `<HOSTNAME|IP ADDR>:<PORT>`
     pub host: String,
+    /// Timeout for http request connection
+    pub timeout: u64,
 }
 
 impl BosunClient {
     /// Creates a new BosunClient.
-    pub fn new(host: &str) -> BosunClient {
-        BosunClient { host: host.to_string() }
+    pub fn new(host: &str, timeout: u64) -> BosunClient {
+        BosunClient { host: host.to_string(), timeout }
     }
 
     /// Sends metric meta data to Bosun server.
@@ -135,8 +133,9 @@ impl BosunClient {
     /// let _ = client.emit_metadata(&metadata);
     /// ```
     pub fn emit_metadata(&self, metadata: &Metadata) -> EmitterResult {
+        let timeout = 5u64;
         let encoded = try!(metadata.to_json());
-        let res = BosunClient::send_to_bosun_api(&self.host, "/api/metadata/put", &encoded);
+        let res = BosunClient::send_to_bosun_api(&self.host, "/api/metadata/put", &encoded, timeout);
         info!("Sent medata '{:?}' to '{:?}' with result: '{:?}'.",
               encoded,
               self.host,
@@ -159,8 +158,9 @@ impl BosunClient {
     /// let _ = client.emit_datum(&datum);
     /// ```
     pub fn emit_datum(&self, datum: &Datum) -> EmitterResult {
+        let timeout = 5u64;
         let encoded = try!(datum.to_json());
-        let res = BosunClient::send_to_bosun_api(&self.host, "/api/put", &encoded);
+        let res = BosunClient::send_to_bosun_api(&self.host, "/api/put", &encoded, timeout);
         info!("Sent datum '{:?}' to '{:?}' with result: '{:?}'.",
               encoded,
               &self.host,
@@ -169,54 +169,46 @@ impl BosunClient {
         res
     }
 
-    fn send_to_bosun_api(host: &str, path: &str, json: &str) -> EmitterResult {
+    fn send_to_bosun_api<T: Into<Option<u64>>>(host: &str, path: &str, json: &str, timeout: T) -> EmitterResult {
         let uri = if host.starts_with("http") {
             format!("{}{}", host, path)
         } else {
             format!("http://{}{}", host, path)
         };
         let url = Url::parse(&uri).unwrap();
+        let timeout = timeout.into().unwrap_or(5); // Default timeout is set to 5 sec.
 
-        let client = if url.scheme() == "https" {
-            let ssl = NativeTlsClient::new().unwrap();
-            let connector = HttpsConnector::new(ssl);
-            Client::with_connector(connector)
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(timeout))
+            .build()
+            .map_err(|e| EmitterError::EmitError(
+                format!("failed to build http client because {}", e.to_string())
+            ))?;
+
+        let body: Vec<u8> = json.as_bytes().into();
+
+        let req = client
+            .post(&uri)
+            .header("Content-Type", "application/json; charset=utf-8")
+            .body(body);
+
+        // Only add basic auth, if username and password are set
+        let req = if url.has_authority() {
+            let username = url.username();
+            let password = url.password();
+            match (username, password) {
+                (u, Some(_)) if u.len() > 0 => req.basic_auth(username, password),
+                _ => req,
+            }
         } else {
-            Client::new()
+            req
         };
 
-        let mut headers = Headers::new();
-        headers.set(
-            ContentType(
-                Mime(
-                    TopLevel::Application,
-                    SubLevel::Json,
-                    vec![(Attr::Charset, Value::Utf8)]
-                )
-            )
-        );
-        if url.has_authority() && url.password().is_some() {
-            let password = match url.password() {
-                Some(p) => Some(p.to_owned()),
-                None => None
-            };
-            headers.set(
-               Authorization(
-                   Basic {
-                       username: url.username().to_owned(),
-                       password: password
-                   }
-               )
-            );
-        }
+        let res = req.send();
 
-        let res = client.post(&uri)
-            .headers(headers)
-            .body(json)
-            .send();
         match res {
-            Ok(ref response) if response.status == hyper::status::StatusCode::NoContent => Ok(()),
-            Ok(response) => Err(EmitterError::ReceiveError(format!("{}", response.status))),
+            Ok(ref response) if response.status() == StatusCode::NO_CONTENT => Ok(()),
+            Ok(response) => Err(EmitterError::ReceiveError(format!("{}", response.status()))),
             Err(err) => Err(EmitterError::EmitError(format!("{}", err))),
         }
     }

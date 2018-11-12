@@ -1,5 +1,6 @@
 //! emit_bosun -- Emits a single metric datum and corresponding metric meta data to [Bosun](http:////bosun.org).
 
+#[macro_use]
 extern crate clap;
 extern crate env_logger;
 extern crate log;
@@ -19,6 +20,7 @@ static DEFAULT_CONFIG_FILE: &'static str = "/etc/bosun/scollector.conf";
 struct Config {
     host: String,
     hostname: String,
+    timeout: u64,
     metric: Option<String>,
     value: Option<String>,
     rate: Option<String>,
@@ -37,6 +39,7 @@ impl Config {
         Config {
             host: bosun_config.Host,
             hostname: bosun_config.Hostname,
+            timeout: 5,
             metric: None,
             value: None,
             rate: None,
@@ -73,6 +76,13 @@ fn main() {
                                 .long("hostname")
                                 .value_name("HOSTNAME")
                                 .help("Sets hostname")
+                                .takes_value(true))
+                       .arg(Arg::with_name("timeout")
+                                .long("timeout")
+                                .value_name("TIME OUT")
+                                .default_value("5")
+                                .validator(arg_is_u64)
+                                .help("Sets timeout in sec [default=5]")
                                 .takes_value(true))
                        .arg(Arg::with_name("metric")
                                 .short("m")
@@ -186,6 +196,8 @@ fn parse_args(cli_args: &ArgMatches) -> Result<Config, Box<Error>> {
         config.tags.insert("host".to_string(), config.hostname.to_string());
     }
 
+    config.timeout = value_t!(cli_args.value_of("timeout"), u64).ok().unwrap_or(5u64);
+
     if cli_args.is_present("metric") {
         config.metric = Some(cli_args.value_of("metric").unwrap().to_string());
     }
@@ -295,7 +307,7 @@ fn exit_with_error(msg: &str, exit_code: i32) -> ! {
 
 fn emit_datum(config: &Config) -> bosun_emitter::EmitterResult {
     // unwraps are safe, because mode analysis already checked these values are set
-    let client = BosunClient::new(&config.host);
+    let client = BosunClient::new(&config.host, config.timeout);
     let datum = Datum::now(config.metric.as_ref().unwrap(),
                            config.value.as_ref().unwrap(),
                            &config.tags);
@@ -304,7 +316,7 @@ fn emit_datum(config: &Config) -> bosun_emitter::EmitterResult {
 
 fn emit_metadata(config: &Config) -> bosun_emitter::EmitterResult {
     // unwraps are safe, because mode analysis already checked these values are set
-    let client = BosunClient::new(&config.host);
+    let client = BosunClient::new(&config.host, config.timeout);
     let metadata = Metadata::new(config.metric.as_ref().unwrap(),
                                  config.rate.as_ref().unwrap(),
                                  config.unit.as_ref().unwrap(),
@@ -312,7 +324,11 @@ fn emit_metadata(config: &Config) -> bosun_emitter::EmitterResult {
     client.emit_metadata(&metadata)
 }
 
-
+fn arg_is_u64(v: String) -> Result<(), String> {
+    v.parse::<u64>()
+        .map(|_| ())
+        .map_err(|_| String::from("timeout must be a number"))
+}
 
 #[cfg(test)]
 mod tests {
@@ -335,5 +351,4 @@ mod tests {
         assert_eq!(config.tags.len(), 2);
     }
 }
-
 
