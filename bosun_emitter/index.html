@@ -1,0 +1,113 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `bosun_emitter` crate."><meta name="keywords" content="rust, rustlang, rust-lang, bosun_emitter"><title>bosun_emitter - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../dark.css"><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script src="../storage.js"></script></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><p class='location'>Crate bosun_emitter</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#functions">Functions</a></li><li><a href="#types">Type Definitions</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'bosun_emitter', ty: 'mod', relpath: '../'};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/bosun_emitter/lib.rs.html#1-406' title='goto source code'>[src]</a></span><span class='in-band'>Crate <a class="mod" href=''>bosun_emitter</a></span></h1><div class='docblock'><p>bosun_emitter - A library to emit metric data to <a href="http://bosun.org">Bosun</a> from your command line.</p>
+<blockquote>
+<p>&quot;<a href="http://bosun.org">Bosun</a> is an open-source, MIT licensed, monitoring and alerting system by <a href="http://stackexchange.com/">Stack Exchange</a>. It has an expressive domain specific language for evaluating alerts and creating detailed notifications. It also lets you test your alerts against history for a faster development experience.&quot; <sup><a href="http://bosun.org">[1]</a></sup></p>
+</blockquote>
+<p>Bosun receives metric data mostly via <a href="http://bosun.org/scollector/">scollector</a> which is Boson's agent running on each monitored host. scollector runs build-in as well as external collectors periodically to collect and transmit metrics on its hosts.</p>
+<p>While it is easy to create external collectors suitable for most needs, there are cases in which sending a single, individual metric datum may be helpful. Such cases may comprise any individually run program such as a Cron job for backups or in general any other shell script. Further, it might be helpful to send metric data from your own application.</p>
+<p><strong>bosun_emitter</strong> is a library that makes it easy to send metric data and corresponding meta data describing the metric. Further, this crate contains a CLI standalone binary called <code>emit_bosun</code> that may be used on the command line or from any shell script to send a single metric datum.</p>
+<h1 id="example" class="section-header"><a href="#example">Example</a></h1><h2 id="library" class="section-header"><a href="#library">Library</a></h2>
+<pre class="rust rust-example-rendered">
+<span class="kw">use</span> <span class="ident">bosun_emitter</span>::{<span class="ident">BosunClient</span>, <span class="ident">Datum</span>, <span class="ident">EmitterError</span>, <span class="ident">Metadata</span>, <span class="ident">now_in_ms</span>, <span class="ident">Tags</span>};
+
+<span class="kw">let</span> <span class="ident">client</span> <span class="op">=</span> <span class="ident">BosunClient</span>::<span class="ident">new</span>(<span class="string">&quot;localhost:8070&quot;</span>, <span class="number">5</span>);
+<span class="kw">let</span> <span class="ident">metric</span> <span class="op">=</span> <span class="string">&quot;lukas.tests.count&quot;</span>;
+
+<span class="kw">let</span> <span class="ident">metadata</span> <span class="op">=</span> <span class="ident">Metadata</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">metric</span>, <span class="string">&quot;counter&quot;</span>, <span class="string">&quot;Test&quot;</span>, <span class="string">&quot;Amount of Lukas Tests&quot;</span>);
+<span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">client</span>.<span class="ident">emit_metadata</span>(<span class="kw-2">&amp;</span><span class="ident">metadata</span>);
+
+<span class="kw">let</span> <span class="ident">tags</span>: <span class="ident">Tags</span> <span class="op">=</span> <span class="ident">Tags</span>::<span class="ident">new</span>();
+<span class="kw">let</span> <span class="ident">datum</span> <span class="op">=</span> <span class="ident">Datum</span>::<span class="ident">new</span>(<span class="kw-2">&amp;</span><span class="ident">metric</span>, <span class="ident">now_in_ms</span>(), <span class="string">&quot;42&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">tags</span>);
+
+<span class="kw">match</span> <span class="ident">client</span>.<span class="ident">emit_datum</span>(<span class="kw-2">&amp;</span><span class="ident">datum</span>) {
+    <span class="prelude-val">Ok</span>(<span class="kw">_</span>) <span class="op">=&gt;</span> {}
+    <span class="prelude-val">Err</span>(<span class="ident">EmitterError</span>::<span class="ident">JsonParseError</span>(<span class="kw">_</span>)) <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Failed to create JSON document.&quot;</span>),
+    <span class="prelude-val">Err</span>(<span class="ident">EmitterError</span>::<span class="ident">EmitError</span>(<span class="kw">_</span>)) <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Failed to send.&quot;</span>),
+    <span class="prelude-val">Err</span>(<span class="ident">EmitterError</span>::<span class="ident">ReceiveError</span>(<span class="kw">_</span>)) <span class="op">=&gt;</span> <span class="macro">panic</span><span class="macro">!</span>(<span class="string">&quot;Failed to create resource.&quot;</span>),
+}</pre>
+<h2 id="cli-tool----shell-script" class="section-header"><a href="#cli-tool----shell-script">CLI Tool -- Shell Script</a></h2>
+<pre><code class="language-bash">#!/bin/bash
+
+local start=$(date +%s)
+# Complex, time consuming backup ...
+local now=$(date +%s)
+local runtime=$((${now}-${start}))
+
+emit_bosun --host localhost:8070 --hostname backup-server --tags 'type=mongodb,database=production' --metric backup.runtime --value $runtime --rate gauge --unit sec -d &quot;Backup runtime&quot;
+</code></pre>
+<p><code>emit_bosun</code> parses scollector config files for settings like Bosun server <code>Host, --host</code>, local hostname <code>Hostname, --hostname</code>, and tags <code>Tags, --tags</code>. In case scollector is configured on your host, you can omit these CLI parameters and just pass the configuration file.</p>
+<h2 id="cli-tool----parsing-scollector-configuration-file" class="section-header"><a href="#cli-tool----parsing-scollector-configuration-file">CLI Tool -- Parsing scollector Configuration File</a></h2>
+<pre><code class="language-bash">&gt; emit_bosun -c /etc/bosun/scollector.conf --metric backup.runtime --value $runtime --rate gauge --unit sec -d &quot;Backup Runtime in sec&quot;
+</code></pre>
+<p>The above example scollector configuration file is the default path where <code>emit_bosun</code> looks for a configuration file. So you can even omit that parameter. In addition, tags passed on the command line will be merged with tags read from scollector's configuration file.</p>
+<pre><code class="language-bash">&gt; emit_bosun --metric backup.runtime --value $runtime --rate gauge --unit sec -d &quot;Backup Runtime in sec&quot;
+</code></pre>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.BosunClient.html"
+                                  title='struct bosun_emitter::BosunClient'>BosunClient</a></td>
+                           <td class='docblock-short'>
+                                <p>Encapsulates Bosun server connection.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.BosunConfig.html"
+                                  title='struct bosun_emitter::BosunConfig'>BosunConfig</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents connection parameters to reach Bosun as well as default tags to append to each metric
+datum.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Datum.html"
+                                  title='struct bosun_emitter::Datum'>Datum</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents a metric datum.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Metadata.html"
+                                  title='struct bosun_emitter::Metadata'>Metadata</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents metric meta data.</p>
+
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.EmitterError.html"
+                                  title='enum bosun_emitter::EmitterError'>EmitterError</a></td>
+                           <td class='docblock-short'>
+                                <p>Errors which may occur while sending either meta data or metric data.</p>
+
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.now_in_ms.html"
+                                  title='fn bosun_emitter::now_in_ms'>now_in_ms</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns Unix timestamp in ms.</p>
+
+                           </td>
+                       </tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="type" href="type.EmitterResult.html"
+                                  title='type bosun_emitter::EmitterResult'>EmitterResult</a></td>
+                           <td class='docblock-short'>
+                                <p>Result of an attempt to send meta data or a metric datum</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="type" href="type.Tags.html"
+                                  title='type bosun_emitter::Tags'>Tags</a></td>
+                           <td class='docblock-short'>
+                                <p>Metric tags equivalent to Rust's <code>HashMap&lt;String, String&gt;</code></p>
+
+                           </td>
+                       </tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../";window.currentCrate = "bosun_emitter";</script><script src="../aliases.js"></script><script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>
