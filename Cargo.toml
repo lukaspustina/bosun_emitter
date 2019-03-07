@@ -22,7 +22,7 @@ path = "src/main.rs"
 [dependencies]
 clap = "2"
 chrono = "0.4"
-env_logger = "0.3"
+env_logger = "0.6"
 log = "0.3"
 reqwest = "0.9"
 rustc-serialize = "0.3"
